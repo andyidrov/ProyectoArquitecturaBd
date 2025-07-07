@@ -12,6 +12,7 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      flex-direction: column;
     }
     .form-container {
       background: #fff;
@@ -20,6 +21,7 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       width: 100%;
       max-width: 400px;
+      margin-bottom: 20px;
     }
     .form-container h2 {
       text-align: center;
@@ -40,14 +42,6 @@
       border-radius: 6px;
       box-sizing: border-box;
     }
-    .form-container input[type="number"] {
-      -moz-appearance: textfield; /* Para Firefox: ocultar flechas */
-    }
-    .form-container input::-webkit-outer-spin-button,
-    .form-container input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0; /* Para Chrome: ocultar flechas */
-    }
     .form-container button {
       width: 100%;
       padding: 12px;
@@ -61,8 +55,7 @@
     .form-container button:hover {
       background: #0056b3;
     }
-    /* Estilo para notificación */
-    #notification {
+    #registerNotification, #loginNotification, #transactionNotification {
       margin-top: 15px;
       padding: 12px;
       border-radius: 8px;
@@ -70,12 +63,12 @@
       font-weight: bold;
       text-align: center;
     }
-    #notification.success {
+    .success {
       background-color: #d4edda;
       color: #155724;
       border: 1px solid #c3e6cb;
     }
-    #notification.error {
+    .error {
       background-color: #f8d7da;
       color: #721c24;
       border: 1px solid #f5c6cb;
@@ -84,7 +77,25 @@
 </head>
 <body>
 
-<div class="form-container">
+<div class="form-container" id="login-container">
+  <h2>Login Bancario</h2>
+  <form id="loginForm">
+    <label for="login_usuario">Usuario:</label>
+    <input name="usuario" id="login_usuario" placeholder="Usuario" required>
+
+    <label for="login_password">Contraseña:</label>
+    <input type="password" name="password" id="login_password" placeholder="Contraseña" required>
+
+    <button type="submit">Iniciar Sesión</button>
+  </form>
+  <p style="text-align:center; margin-top:10px;">
+    ¿No tienes cuenta? 
+    <a href="#" onclick="showRegister()">Crear una cuenta</a>
+  </p>
+  <div id="loginNotification"></div>
+</div>
+
+<div class="form-container" id="register-container" style="display:none;">
   <h2>Crear Cuenta Bancaria</h2>
   <form id="registerForm">
     <label for="nombre">Nombre:</label>
@@ -111,63 +122,193 @@
     </select>
 
     <label for="cedula">Cédula:</label>
-    <input name="cedula" id="cedula" placeholder="Cédula" required maxlength="10" pattern="\d{10}" title="Debe contener 10 números" inputmode="numeric">
+    <input name="cedula" id="cedula" placeholder="Cédula" required maxlength="10" pattern="\d{10}" inputmode="numeric">
+
+    <label for="usuario_reg">Usuario:</label>
+    <input name="usuario" id="usuario_reg" placeholder="Usuario" required>
+
+    <label for="password_reg">Contraseña:</label>
+    <input type="password" name="password" id="password_reg" placeholder="Contraseña" required>
 
     <button type="submit">Crear Cuenta</button>
   </form>
+  <p style="text-align:center; margin-top:10px;">
+    ¿Ya tienes cuenta? 
+    <a href="#" onclick="showLogin()">Iniciar sesión</a>
+  </p>
+  <div id="registerNotification"></div>
+</div>
 
-  <div id="notification"></div>
+<div class="form-container" id="dashboard-container" style="display:none;">
+  <h2>Bienvenido al Banco</h2>
+  <p id="userWelcome"></p>
+  <form id="transactionForm">
+    <label for="monto">Monto a transferir:</label>
+    <input name="monto" id="monto" type="number" min="1" placeholder="Ej. 100" required>
+
+    <select id="tipo_transaccion" required>
+      <option value="">Seleccione...</option>
+      <option value="deposito">Depósito</option>
+      <option value="retiro">Retiro</option>
+    </select>
+
+    <button type="submit">Realizar Transacción</button>
+  </form>
+  <div id="transactionNotification"></div>
+  <button onclick="logout()" style="margin-top:15px; background:#dc3545;">Cerrar sesión</button>
 </div>
 
 <script>
-const notification = document.getElementById('notification');
-const cedulaInput = document.getElementById('cedula');
+let currentUser = null;
 
-// Validar solo números y máximo 10 caracteres en cédula en tiempo real
-cedulaInput.addEventListener('input', () => {
-  cedulaInput.value = cedulaInput.value.replace(/\D/g, '').slice(0, 10);
+function showRegister() {
+  document.getElementById('login-container').style.display = 'none';
+  document.getElementById('register-container').style.display = 'block';
+  document.getElementById('dashboard-container').style.display = 'none';
+}
+function showLogin() {
+  document.getElementById('register-container').style.display = 'none';
+  document.getElementById('login-container').style.display = 'block';
+  document.getElementById('dashboard-container').style.display = 'none';
+}
+function logout() {
+  currentUser = null;
+  showLogin();
+}
+
+// Validar solo números en cédula
+document.getElementById('cedula').addEventListener('input', () => {
+  const cedula = document.getElementById('cedula');
+  cedula.value = cedula.value.replace(/\D/g, '').slice(0, 10);
 });
 
+// Registro
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    notification.style.display = 'none';
-    notification.className = '';
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData.entries());
+  e.preventDefault();
+  const notification = document.getElementById('registerNotification');
+  notification.style.display = 'none';
+  notification.className = '';
 
-    // Validar que cédula tenga exactamente 10 números
-    if (data.cedula.length !== 10) {
-      notification.textContent = 'La cédula debe contener exactamente 10 números.';
-      notification.className = 'error';
-      notification.style.display = 'block';
-      return;
-    }
+  const data = {
+    nombre: document.getElementById('nombre').value,
+    apellido: document.getElementById('apellido').value,
+    fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
+    estado_civil: document.getElementById('estado_civil').value,
+    tipo_cuenta: document.getElementById('tipo_cuenta').value,
+    cedula: document.getElementById('cedula').value,
+    usuario: document.getElementById('usuario_reg').value,
+    password: document.getElementById('password_reg').value,
+  };
 
-    try {
-      const res = await fetch('http://localhost:3000/api/register', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(data)
-      });
-      const result = await res.json();
+  if (data.cedula.length !== 10) {
+    showNotification(notification, 'La cédula debe tener exactamente 10 números.', 'error');
+    return;
+  }
 
-      if(res.ok) {
-        notification.textContent = `¡Usuario registrado con éxito! ID: ${result.usuario_id}`;
-        notification.className = 'success';
-      } else {
-        // Mostrar mensaje de error si viene
-        notification.textContent = result.message || 'Error al registrar usuario.';
-        notification.className = 'error';
-      }
-      notification.style.display = 'block';
+  try {
+    const res = await fetch('http://localhost:3000/api/register', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (res.ok) {
+      showNotification(notification, `¡Usuario registrado con éxito!`, 'success');
       e.target.reset();
-    } catch (err) {
-      notification.textContent = "Error al conectar con el servidor.";
-      notification.className = 'error';
-      notification.style.display = 'block';
+    } else {
+      showNotification(notification, result.message || 'Error al registrar.', 'error');
     }
+  } catch {
+    showNotification(notification, 'Error al conectar con el servidor.', 'error');
+  }
 });
+
+// Login
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const notification = document.getElementById('loginNotification');
+  notification.style.display = 'none';
+  notification.className = '';
+
+  const data = {
+    usuario: document.getElementById('login_usuario').value,
+    password: document.getElementById('login_password').value,
+  };
+
+  try {
+    const res = await fetch('http://localhost:3000/api/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (res.ok) {
+      currentUser = result;
+      document.getElementById('login-container').style.display = 'none';
+      document.getElementById('dashboard-container').style.display = 'block';
+      updateWelcome();
+    } else {
+      showNotification(notification, result.message || 'Credenciales incorrectas.', 'error');
+    }
+  } catch {
+    showNotification(notification, 'Error al conectar con el servidor.', 'error');
+  }
+});
+
+function updateWelcome() {
+  document.getElementById('userWelcome').textContent = `Hola ${currentUser.nombre}, tu saldo actual es $${currentUser.saldo}.`;
+}
+
+// Transferencias reales
+document.getElementById('transactionForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const notification = document.getElementById('transactionNotification');
+  notification.style.display = 'none';
+  notification.className = '';
+
+  const monto = parseFloat(document.getElementById('monto').value);
+  const tipo = document.getElementById('tipo_transaccion').value;
+
+  if (!tipo) {
+    showNotification(notification, 'Seleccione tipo de transacción.', 'error');
+    return;
+  }
+  if (monto <= 0) {
+    showNotification(notification, 'Monto inválido.', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('http://localhost:3000/api/transfer', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        usuario_id: currentUser.id,
+        tipo,
+        monto
+      })
+    });
+    const result = await res.json();
+    if (res.ok) {
+      showNotification(notification, result.message, 'success');
+      currentUser.saldo = result.saldo;
+      updateWelcome();
+      e.target.reset();
+    } else {
+      showNotification(notification, result.message || 'Error en transacción.', 'error');
+    }
+  } catch {
+    showNotification(notification, 'Error al conectar con el servidor.', 'error');
+  }
+});
+
+function showNotification(el, message, type) {
+  el.textContent = message;
+  el.className = type;
+  el.style.display = 'block';
+}
 </script>
 
 </body>
 </html>
+
