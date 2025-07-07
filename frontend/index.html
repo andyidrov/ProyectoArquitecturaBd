@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro Bancario</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .form-container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 400px;
+    }
+    .form-container h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .form-container label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+    .form-container input,
+    .form-container select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+    .form-container input[type="number"] {
+      -moz-appearance: textfield; /* Para Firefox: ocultar flechas */
+    }
+    .form-container input::-webkit-outer-spin-button,
+    .form-container input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0; /* Para Chrome: ocultar flechas */
+    }
+    .form-container button {
+      width: 100%;
+      padding: 12px;
+      background: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .form-container button:hover {
+      background: #0056b3;
+    }
+    /* Estilo para notificación */
+    #notification {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+      font-weight: bold;
+      text-align: center;
+    }
+    #notification.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    #notification.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+
+<div class="form-container">
+  <h2>Crear Cuenta Bancaria</h2>
+  <form id="registerForm">
+    <label for="nombre">Nombre:</label>
+    <input name="nombre" id="nombre" placeholder="Nombre" required>
+
+    <label for="apellido">Apellido:</label>
+    <input name="apellido" id="apellido" placeholder="Apellido" required>
+
+    <label for="fecha_nacimiento">Fecha de nacimiento:</label>
+    <input name="fecha_nacimiento" id="fecha_nacimiento" type="date" required>
+
+    <label for="estado_civil">Estado Civil:</label>
+    <select name="estado_civil" id="estado_civil" required>
+        <option value="">Seleccione...</option>
+        <option>Soltero</option>
+        <option>Casado</option>
+    </select>
+
+    <label for="tipo_cuenta">Tipo de Cuenta:</label>
+    <select name="tipo_cuenta" id="tipo_cuenta" required>
+        <option value="">Seleccione...</option>
+        <option>Ahorros</option>
+        <option>Corriente</option>
+    </select>
+
+    <label for="cedula">Cédula:</label>
+    <input name="cedula" id="cedula" placeholder="Cédula" required maxlength="10" pattern="\d{10}" title="Debe contener 10 números" inputmode="numeric">
+
+    <button type="submit">Crear Cuenta</button>
+  </form>
+
+  <div id="notification"></div>
+</div>
+
+<script>
+const notification = document.getElementById('notification');
+const cedulaInput = document.getElementById('cedula');
+
+// Validar solo números y máximo 10 caracteres en cédula en tiempo real
+cedulaInput.addEventListener('input', () => {
+  cedulaInput.value = cedulaInput.value.replace(/\D/g, '').slice(0, 10);
+});
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    notification.style.display = 'none';
+    notification.className = '';
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+
+    // Validar que cédula tenga exactamente 10 números
+    if (data.cedula.length !== 10) {
+      notification.textContent = 'La cédula debe contener exactamente 10 números.';
+      notification.className = 'error';
+      notification.style.display = 'block';
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:3000/api/register', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(data)
+      });
+      const result = await res.json();
+
+      if(res.ok) {
+        notification.textContent = `¡Usuario registrado con éxito! ID: ${result.usuario_id}`;
+        notification.className = 'success';
+      } else {
+        // Mostrar mensaje de error si viene
+        notification.textContent = result.message || 'Error al registrar usuario.';
+        notification.className = 'error';
+      }
+      notification.style.display = 'block';
+      e.target.reset();
+    } catch (err) {
+      notification.textContent = "Error al conectar con el servidor.";
+      notification.className = 'error';
+      notification.style.display = 'block';
+    }
+});
+</script>
+
+</body>
+</html>
