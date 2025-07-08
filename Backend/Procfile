@@ -1,0 +1,1 @@
+web: npm install --prefix Backend && npm start --prefix Backend
