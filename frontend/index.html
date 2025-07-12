@@ -3,312 +3,403 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Registro Bancario</title>
+  <title>Banco Online</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7fa;
+      padding: 20px;
       display: flex;
       justify-content: center;
-      align-items: center;
-      height: 100vh;
-      flex-direction: column;
     }
-    .form-container {
-      background: #fff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    main {
       width: 100%;
-      max-width: 400px;
-      margin-bottom: 20px;
+      max-width: 450px;
+      background: white;
+      padding: 30px 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
-    .form-container h2 {
+    h1 {
       text-align: center;
       margin-bottom: 20px;
-      color: #333;
+      color: #1d3557;
     }
-    .form-container label {
+    .form-section {
+      display: none;
+      margin-bottom: 20px;
+      transition: opacity 0.3s ease;
+    }
+    .visible {
+      display: block !important;
+      opacity: 1;
+    }
+    input, select, button {
       display: block;
-      margin-bottom: 6px;
-      font-weight: bold;
-    }
-    .form-container input,
-    .form-container select {
+      margin: 10px 0 20px 0;
+      padding: 12px 15px;
       width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      border: 1.8px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
       box-sizing: border-box;
     }
-    .form-container button {
-      width: 100%;
-      padding: 12px;
-      background: #007BFF;
+    input:focus, select:focus {
+      border-color: #457b9d;
+      outline: none;
+      box-shadow: 0 0 6px #a8dadc;
+    }
+    button {
+      background-color: #1d3557;
       color: white;
       border: none;
-      border-radius: 6px;
       cursor: pointer;
-      font-size: 16px;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
     }
-    .form-container button:hover {
-      background: #0056b3;
+    button:hover {
+      background-color: #457b9d;
     }
-    #registerNotification, #loginNotification, #transactionNotification {
-      margin-top: 15px;
-      padding: 12px;
-      border-radius: 8px;
-      display: none;
-      font-weight: bold;
-      text-align: center;
+    a {
+      color: #1d3557;
+      cursor: pointer;
+      text-decoration: underline;
     }
-    .success {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+    a:hover {
+      color: #457b9d;
     }
-    .error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
+    p.message {
+      margin-top: -15px;
+      margin-bottom: 15px;
+      color: #e63946; /* rojo error */
+      font-weight: 600;
+      min-height: 20px;
+      transition: opacity 0.3s ease;
+    }
+    p.message.success {
+      color: #2a9d8f; /* verde */
+    }
+    p.message.hide {
+      opacity: 0;
+      height: 0;
+      margin: 0;
+      overflow: hidden;
+    }
+    /* Mejor separacion de botones en transacciones */
+    #transaccionSection button, #transferenciaSection button {
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
 
-<div class="form-container" id="login-container">
-  <h2>Login Bancario</h2>
-  <form id="loginForm">
-    <label for="login_usuario">Usuario:</label>
-    <input name="usuario" id="login_usuario" placeholder="Usuario" required>
+  <main>
+    <h1>💳 Banco Online</h1>
 
-    <label for="login_password">Contraseña:</label>
-    <input type="password" name="password" id="login_password" placeholder="Contraseña" required>
+    <!-- 🔐 LOGIN -->
+    <div id="loginSection" class="form-section visible">
+      <h2>Iniciar Sesión</h2>
+      <input type="text" id="loginUsuario" placeholder="Usuario" />
+      <input type="password" id="loginPassword" placeholder="Contraseña" />
+      <button onclick="login()">Entrar</button>
+      <p>¿No tienes cuenta? <a onclick="mostrarRegistro()">Crear cuenta</a></p>
+      <p id="loginMsg" class="message hide"></p>
+    </div>
 
-    <button type="submit">Iniciar Sesión</button>
-  </form>
-  <p style="text-align:center; margin-top:10px;">
-    ¿No tienes cuenta? 
-    <a href="#" onclick="showRegister()">Crear una cuenta</a>
-  </p>
-  <div id="loginNotification"></div>
-</div>
+    <!-- 📝 REGISTRO -->
+    <div id="registroSection" class="form-section">
+      <h2>Crear Cuenta</h2>
+      <input type="text" id="nombre" placeholder="Nombre" oninput="soloLetrasInput(this)" />
+      <input type="text" id="apellido" placeholder="Apellido" oninput="soloLetrasInput(this)" />
+      <input type="date" id="fechaNacimiento" />
+      <select id="estadoCivil">
+        <option value="">Estado civil</option>
+        <option value="soltero">Soltero</option>
+        <option value="casado">Casado</option>
+      </select>
+      <select id="tipoCuenta">
+        <option value="">Tipo de cuenta</option>
+        <option value="corriente">Corriente</option>
+        <option value="ahorro">Ahorro</option>
+      </select>
+      <input type="text" id="cedula" maxlength="10" placeholder="Cédula (10 dígitos)" pattern="\d{10}" />
+      <input type="text" id="usuario" placeholder="Usuario (máx 20 caracteres)" maxlength="20" />
+      <input type="email" id="correo" placeholder="Correo electrónico" />
+      <input type="password" id="password" placeholder="Contraseña" />
+      <button onclick="registrar()">Registrar</button>
+      <p id="registroMsg" class="message hide"></p>
+    </div>
 
-<div class="form-container" id="register-container" style="display:none;">
-  <h2>Crear Cuenta Bancaria</h2>
-  <form id="registerForm">
-    <label for="nombre">Nombre:</label>
-    <input name="nombre" id="nombre" placeholder="Nombre" required>
+    <!-- 💰 TRANSACCIONES -->
+    <div id="transaccionSection" class="form-section">
+      <h2>Transacciones</h2>
+      <p>Bienvenido, <strong id="usuarioActivo"></strong></p>
+      <p id="saldoMsg" class="message hide"></p>
+      <select id="tipoTransaccion">
+        <option value="deposito">Depósito</option>
+        <option value="retiro">Retiro</option>
+      </select>
+      <input type="number" id="monto" placeholder="Monto" />
+      <button onclick="transaccion()">Realizar Transacción</button>
+      <p id="transaccionMsg" class="message hide"></p>
 
-    <label for="apellido">Apellido:</label>
-    <input name="apellido" id="apellido" placeholder="Apellido" required>
+      <button onclick="mostrarTransferencia()">Hacer Transferencia ➡</button>
+    </div>
 
-    <label for="fecha_nacimiento">Fecha de nacimiento:</label>
-    <input name="fecha_nacimiento" id="fecha_nacimiento" type="date" required>
+    <!-- 🔄 TRANSFERENCIA -->
+    <div id="transferenciaSection" class="form-section">
+      <h2>Transferencia</h2>
+      <p>Origen: <strong id="usuarioOrigen"></strong></p>
+      <input type="text" id="usuarioDestino" placeholder="Usuario destino" />
+      <input type="number" id="montoTransferencia" placeholder="Monto a transferir" />
+      <button onclick="transferir()">Transferir</button>
+      <p id="transferenciaMsg" class="message hide"></p>
+      <button onclick="volverTransacciones()">⬅ Volver</button>
+    </div>
+  </main>
 
-    <label for="estado_civil">Estado Civil:</label>
-    <select name="estado_civil" id="estado_civil" required>
-        <option value="">Seleccione...</option>
-        <option>Soltero</option>
-        <option>Casado</option>
-    </select>
+  <script>
+    let usuarioLogueado = null;
+    const API_URL = 'http://localhost:8080/api';
 
-    <label for="tipo_cuenta">Tipo de Cuenta:</label>
-    <select name="tipo_cuenta" id="tipo_cuenta" required>
-        <option value="">Seleccione...</option>
-        <option>Ahorros</option>
-        <option>Corriente</option>
-    </select>
-
-    <label for="cedula">Cédula:</label>
-    <input name="cedula" id="cedula" placeholder="Cédula" required maxlength="10" pattern="\d{10}" inputmode="numeric">
-
-    <label for="usuario_reg">Usuario:</label>
-    <input name="usuario" id="usuario_reg" placeholder="Usuario" required>
-
-    <label for="password_reg">Contraseña:</label>
-    <input type="password" name="password" id="password_reg" placeholder="Contraseña" required>
-
-    <button type="submit">Crear Cuenta</button>
-  </form>
-  <p style="text-align:center; margin-top:10px;">
-    ¿Ya tienes cuenta? 
-    <a href="#" onclick="showLogin()">Iniciar sesión</a>
-  </p>
-  <div id="registerNotification"></div>
-</div>
-
-<div class="form-container" id="dashboard-container" style="display:none;">
-  <h2>Bienvenido al Banco</h2>
-  <p id="userWelcome"></p>
-  <form id="transactionForm">
-    <label for="monto">Monto a transferir:</label>
-    <input name="monto" id="monto" type="number" min="1" placeholder="Ej. 100" required>
-
-    <select id="tipo_transaccion" required>
-      <option value="">Seleccione...</option>
-      <option value="deposito">Depósito</option>
-      <option value="retiro">Retiro</option>
-    </select>
-
-    <button type="submit">Realizar Transacción</button>
-  </form>
-  <div id="transactionNotification"></div>
-  <button onclick="logout()" style="margin-top:15px; background:#dc3545;">Cerrar sesión</button>
-</div>
-
-<script>
-let currentUser = null;
-
-function showRegister() {
-  document.getElementById('login-container').style.display = 'none';
-  document.getElementById('register-container').style.display = 'block';
-  document.getElementById('dashboard-container').style.display = 'none';
-}
-function showLogin() {
-  document.getElementById('register-container').style.display = 'none';
-  document.getElementById('login-container').style.display = 'block';
-  document.getElementById('dashboard-container').style.display = 'none';
-}
-function logout() {
-  currentUser = null;
-  showLogin();
-}
-
-// Validar solo números en cédula
-document.getElementById('cedula').addEventListener('input', () => {
-  const cedula = document.getElementById('cedula');
-  cedula.value = cedula.value.replace(/\D/g, '').slice(0, 10);
-});
-
-// Registro
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const notification = document.getElementById('registerNotification');
-  notification.style.display = 'none';
-  notification.className = '';
-
-  const data = {
-    nombre: document.getElementById('nombre').value,
-    apellido: document.getElementById('apellido').value,
-    fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
-    estado_civil: document.getElementById('estado_civil').value,
-    tipo_cuenta: document.getElementById('tipo_cuenta').value,
-    cedula: document.getElementById('cedula').value,
-    usuario: document.getElementById('usuario_reg').value,
-    password: document.getElementById('password_reg').value,
-  };
-
-  if (data.cedula.length !== 10) {
-    showNotification(notification, 'La cédula debe tener exactamente 10 números.', 'error');
-    return;
-  }
-
-  try {
-    const res = await fetch('http://localhost:3000/api/register', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(data)
-    });
-    const result = await res.json();
-    if (res.ok) {
-      showNotification(notification, `¡Usuario registrado con éxito!`, 'success');
-      e.target.reset();
-    } else {
-      showNotification(notification, result.message || 'Error al registrar.', 'error');
+    // Bloquea la entrada a solo letras, acentos y espacios
+    function soloLetrasInput(input) {
+      input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
     }
-  } catch {
-    showNotification(notification, 'Error al conectar con el servidor.', 'error');
-  }
-});
 
-// Login
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const notification = document.getElementById('loginNotification');
-  notification.style.display = 'none';
-  notification.className = '';
-
-  const data = {
-    usuario: document.getElementById('login_usuario').value,
-    password: document.getElementById('login_password').value,
-  };
-
-  try {
-    const res = await fetch('http://localhost:3000/api/login', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(data)
-    });
-    const result = await res.json();
-    if (res.ok) {
-      currentUser = result;
-      document.getElementById('login-container').style.display = 'none';
-      document.getElementById('dashboard-container').style.display = 'block';
-      updateWelcome();
-    } else {
-      showNotification(notification, result.message || 'Credenciales incorrectas.', 'error');
+    function mostrarRegistro() {
+      setVisibleSection('registroSection');
+      limpiarRegistro();
+      mostrarMensaje('registroMsg', '', false);
+      mostrarMensaje('loginMsg', '', false);
     }
-  } catch {
-    showNotification(notification, 'Error al conectar con el servidor.', 'error');
-  }
-});
 
-function updateWelcome() {
-  document.getElementById('userWelcome').textContent = `Hola ${currentUser.nombre}, tu saldo actual es $${currentUser.saldo}.`;
-}
-
-// Transferencias reales
-document.getElementById('transactionForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const notification = document.getElementById('transactionNotification');
-  notification.style.display = 'none';
-  notification.className = '';
-
-  const monto = parseFloat(document.getElementById('monto').value);
-  const tipo = document.getElementById('tipo_transaccion').value;
-
-  if (!tipo) {
-    showNotification(notification, 'Seleccione tipo de transacción.', 'error');
-    return;
-  }
-  if (monto <= 0) {
-    showNotification(notification, 'Monto inválido.', 'error');
-    return;
-  }
-
-  try {
-    const res = await fetch('http://localhost:3000/api/transfer', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        usuario_id: currentUser.id,
-        tipo,
-        monto
-      })
-    });
-    const result = await res.json();
-    if (res.ok) {
-      showNotification(notification, result.message, 'success');
-      currentUser.saldo = result.saldo;
-      updateWelcome();
-      e.target.reset();
-    } else {
-      showNotification(notification, result.message || 'Error en transacción.', 'error');
+    function mostrarTransferencia() {
+      setVisibleSection('transferenciaSection');
+      document.getElementById('usuarioOrigen').textContent = usuarioLogueado;
+      limpiarTransferencia();
+      mostrarMensaje('transferenciaMsg', '', false);
     }
-  } catch {
-    showNotification(notification, 'Error al conectar con el servidor.', 'error');
-  }
-});
 
-function showNotification(el, message, type) {
-  el.textContent = message;
-  el.className = type;
-  el.style.display = 'block';
-}
-</script>
+    function volverTransacciones() {
+      setVisibleSection('transaccionSection');
+      mostrarMensaje('transaccionMsg', '', false);
+    }
 
+    function setVisibleSection(idVisible) {
+      ['loginSection', 'registroSection', 'transaccionSection', 'transferenciaSection'].forEach(id => {
+        const elem = document.getElementById(id);
+        if (id === idVisible) {
+          elem.classList.add('visible');
+          elem.style.opacity = '1';
+        } else {
+          elem.classList.remove('visible');
+          elem.style.opacity = '0';
+        }
+      });
+    }
+
+    function camposVacios(obj) {
+      return Object.values(obj).some(val => val.trim() === "");
+    }
+
+    function validarCedula(cedula) {
+      return /^\d{10}$/.test(cedula);
+    }
+
+    function validarCorreo(correo) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
+    }
+
+    function mostrarMensaje(id, msg, isError = true) {
+      const p = document.getElementById(id);
+      p.textContent = msg;
+      if (!msg) {
+        p.classList.add('hide');
+      } else {
+        p.classList.remove('hide');
+        p.classList.toggle('success', !isError);
+      }
+    }
+
+    function limpiarRegistro() {
+      ['nombre', 'apellido', 'fechaNacimiento', 'estadoCivil', 'tipoCuenta', 'cedula', 'usuario', 'correo', 'password']
+        .forEach(id => document.getElementById(id).value = '');
+    }
+
+    function limpiarTransferencia() {
+      ['usuarioDestino', 'montoTransferencia'].forEach(id => document.getElementById(id).value = '');
+    }
+
+    async function registrar() {
+      const data = {
+        nombre: document.getElementById('nombre').value.trim(),
+        apellido: document.getElementById('apellido').value.trim(),
+        fecha_nacimiento: document.getElementById('fechaNacimiento').value.trim(),
+        estado_civil: document.getElementById('estadoCivil').value,
+        tipo_cuenta: document.getElementById('tipoCuenta').value,
+        cedula: document.getElementById('cedula').value.trim(),
+        usuario: document.getElementById('usuario').value.trim(),
+        correo: document.getElementById('correo').value.trim(),
+        password: document.getElementById('password').value
+      };
+      const mensajeId = 'registroMsg';
+
+      if (camposVacios(data)) {
+        mostrarMensaje(mensajeId, "⚠️ Todos los campos son obligatorios.");
+        return;
+      }
+
+      if (!validarCedula(data.cedula)) {
+        mostrarMensaje(mensajeId, "⚠️ La cédula debe tener exactamente 10 dígitos.");
+        return;
+      }
+
+      if (!validarCorreo(data.correo)) {
+        mostrarMensaje(mensajeId, "⚠️ Ingresa un correo válido.");
+        return;
+      }
+
+      if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(data.nombre)) {
+        mostrarMensaje(mensajeId, "⚠️ El nombre solo debe contener letras y espacios.");
+        return;
+      }
+
+      if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(data.apellido)) {
+        mostrarMensaje(mensajeId, "⚠️ El apellido solo debe contener letras y espacios.");
+        return;
+      }
+
+      if (data.usuario.length > 20) {
+        mostrarMensaje(mensajeId, "⚠️ El usuario debe tener máximo 20 caracteres.");
+        return;
+      }
+
+      // Aquí puedes agregar llamadas API para validar unicidad usuario, correo y cédula antes de enviar
+
+      try {
+        const res = await fetch(`${API_URL}/registro`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        mostrarMensaje(mensajeId, result.message || result.error, !res.ok);
+
+        if (res.ok) {
+          limpiarRegistro();
+          setVisibleSection('loginSection');
+          mostrarMensaje('loginMsg', "✅ Registro exitoso, por favor inicia sesión.", false);
+        }
+      } catch {
+        mostrarMensaje(mensajeId, "⚠️ Error en la comunicación con el servidor.");
+      }
+    }
+
+    async function login() {
+      const data = {
+        usuario: document.getElementById('loginUsuario').value.trim(),
+        password: document.getElementById('loginPassword').value
+      };
+      const mensajeId = 'loginMsg';
+
+      if (!data.usuario || !data.password) {
+        mostrarMensaje(mensajeId, "⚠️ Debes ingresar usuario y contraseña.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        mostrarMensaje(mensajeId, result.message || result.error, !res.ok);
+
+        if (res.ok) {
+          usuarioLogueado = result.usuario;
+          document.getElementById('usuarioActivo').textContent = usuarioLogueado;
+          setVisibleSection('transaccionSection');
+          mostrarSaldo();
+          mostrarMensaje(mensajeId, '');
+        }
+      } catch {
+        mostrarMensaje(mensajeId, "⚠️ Error en la comunicación con el servidor.");
+      }
+    }
+
+    async function mostrarSaldo() {
+      try {
+        const res = await fetch(`${API_URL}/saldo/${usuarioLogueado}`);
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('usuarioActivo').textContent = `${usuarioLogueado} - 💰 Saldo disponible: $${parseFloat(data.saldo).toFixed(2)}`;
+          mostrarMensaje('saldoMsg', '', false);
+        } else {
+          mostrarMensaje('saldoMsg', data.error);
+        }
+      } catch {
+        mostrarMensaje('saldoMsg', "⚠️ No se pudo obtener el saldo.");
+      }
+    }
+
+    async function transaccion() {
+      const tipo = document.getElementById('tipoTransaccion').value;
+      const monto = parseFloat(document.getElementById('monto').value);
+      const mensajeId = 'transaccionMsg';
+
+      if (!usuarioLogueado || !tipo || isNaN(monto) || monto <= 0) {
+        mostrarMensaje(mensajeId, "⚠️ Datos inválidos para la transacción.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/transaccion`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuario: usuarioLogueado, tipo, monto })
+        });
+        const result = await res.json();
+        mostrarMensaje(mensajeId, result.message || result.error, !res.ok);
+        if (res.ok) mostrarSaldo();
+      } catch {
+        mostrarMensaje(mensajeId, "⚠️ Error en la comunicación con el servidor.");
+      }
+    }
+
+    async function transferir() {
+      const usuarioDestino = document.getElementById('usuarioDestino').value.trim();
+      const monto = parseFloat(document.getElementById('montoTransferencia').value);
+      const mensajeId = 'transferenciaMsg';
+
+      if (!usuarioDestino || isNaN(monto) || monto <= 0) {
+        mostrarMensaje(mensajeId, "⚠️ Datos inválidos para la transferencia.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/transferencia`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario_origen: usuarioLogueado,
+            usuario_destino: usuarioDestino,
+            monto
+          })
+        });
+        const result = await res.json();
+        mostrarMensaje(mensajeId, result.message || result.error, !res.ok);
+        if (res.ok) {
+          mostrarSaldo();
+          limpiarTransferencia();
+        }
+      } catch {
+        mostrarMensaje(mensajeId, "⚠️ Error en la comunicación con el servidor.");
+      }
+    }
+  </script>
 </body>
 </html>
 
