@@ -35,18 +35,17 @@ router.post('/transferencia', async (req, res) => {
     await conn.query('UPDATE usuarios SET saldo = saldo - ? WHERE id = ?', [montoNum, origen.id]);
     await conn.query('UPDATE usuarios SET saldo = saldo + ? WHERE id = ?', [montoNum, destino.id]);
 
-    // Inserta en tabla transferencias
+    // Inserta en transferencias
     await conn.query(
       'INSERT INTO transferencias (remitente_id, destinatario_id, monto) VALUES (?, ?, ?)',
       [origen.id, destino.id, montoNum]
     );
 
-    // Registra en transacciones
+    // Inserta en transacciones
     await conn.query(
       'INSERT INTO transacciones (usuario_id, tipo, monto, descripcion) VALUES (?, ?, ?, ?)',
       [origen.id, 'transferencia_envio', montoNum, `Transferencia enviada a ${usuario_destino}`]
     );
-
     await conn.query(
       'INSERT INTO transacciones (usuario_id, tipo, monto, descripcion) VALUES (?, ?, ?, ?)',
       [destino.id, 'transferencia_recibo', montoNum, `Transferencia recibida de ${usuario_origen}`]
@@ -55,4 +54,16 @@ router.post('/transferencia', async (req, res) => {
     await conn.commit();
     conn.release();
 
-    return res.status(200).json({ message: `✅ Transferencia de $${montoNum.toFixed(2)} realiz
+    return res.status(200).json({
+      message: `✅ Transferencia de $${montoNum.toFixed(2)} realizada con éxito.`
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    conn.release();
+    console.error('❌ Error en la transferencia:', error);
+    return res.status(500).json({ error: 'Error interno en la transferencia.' });
+  }
+});
+
+module.exports = router;
