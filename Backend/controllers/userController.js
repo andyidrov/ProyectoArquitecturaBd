@@ -1,7 +1,7 @@
 const db = require('../models/db');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
-// Registro
+// 🧾 Registro de usuario
 const registerUser = async (req, res) => {
   try {
     const {
@@ -16,7 +16,6 @@ const registerUser = async (req, res) => {
       password
     } = req.body;
 
-    // Validar campos obligatorios
     if (
       !nombre || !apellido || !fecha_nacimiento ||
       !estado_civil || !tipo_cuenta || !cedula ||
@@ -25,17 +24,14 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ error: 'Todos los campos son obligatorios' });
     }
 
-    // Validar cédula
     if (!/^\d{10}$/.test(cedula)) {
       return res.status(400).json({ error: 'La cédula debe tener exactamente 10 dígitos numéricos' });
     }
 
-    // Validar correo con regex simple
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
       return res.status(400).json({ error: 'Formato de correo inválido' });
     }
 
-    // Verificar unicidad usuario, cédula y correo
     const [userExists] = await db.query(
       'SELECT id FROM usuarios WHERE usuario = ? OR cedula = ? OR correo = ?',
       [usuario, cedula, correo]
@@ -44,10 +40,8 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ error: 'Usuario, cédula o correo ya registrados' });
     }
 
-    // Hashear password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insertar usuario
     await db.query(
       `INSERT INTO usuarios
       (nombre, apellido, fecha_nacimiento, estado_civil, tipo_cuenta, cedula, usuario, correo, password)
@@ -55,7 +49,7 @@ const registerUser = async (req, res) => {
       [nombre, apellido, fecha_nacimiento, estado_civil, tipo_cuenta, cedula, usuario, correo, hashedPassword]
     );
 
-    res.status(201).json({ message: 'Usuario registrado con éxito' });
+    res.status(201).json({ message: '✅ Usuario registrado con éxito' });
   } catch (err) {
     console.error('❌ Error al registrar usuario:', err.message);
     if (err.sqlMessage) console.error('🛑 MySQL Error:', err.sqlMessage);
@@ -63,10 +57,11 @@ const registerUser = async (req, res) => {
   }
 };
 
-// Login
+// 🔐 Login
 const loginUser = async (req, res) => {
   try {
     const { usuario, password } = req.body;
+
     const [rows] = await db.query('SELECT * FROM usuarios WHERE usuario = ?', [usuario]);
     if (rows.length === 0) return res.status(401).json({ error: 'Usuario no encontrado' });
 
@@ -74,21 +69,25 @@ const loginUser = async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
-    res.status(200).json({ message: 'Inicio de sesión exitoso', usuario: user.usuario });
+    res.status(200).json({ message: '✅ Inicio de sesión exitoso', usuario: user.usuario });
   } catch (err) {
     console.error('❌ Error al iniciar sesión:', err);
     res.status(500).json({ error: 'Error interno al iniciar sesión' });
   }
 };
 
-// Transacciones
+// 💸 Transacciones (depósito/retiro)
 const handleTransfer = async (req, res) => {
-  try {
-    const { usuario, tipo, monto } = req.body;
-    const montoNum = parseFloat(monto);
-    if (isNaN(montoNum) || montoNum <= 0) return res.status(400).json({ error: 'Monto inválido' });
+  const { usuario, tipo, monto } = req.body;
 
-    const conn = await db.getConnection();
+  const montoNum = parseFloat(monto);
+  if (!usuario || !tipo || isNaN(montoNum) || montoNum <= 0) {
+    return res.status(400).json({ error: 'Datos de transacción inválidos' });
+  }
+
+  const conn = await db.getConnection();
+
+  try {
     await conn.beginTransaction();
 
     const [userRows] = await conn.query('SELECT * FROM usuarios WHERE usuario = ?', [usuario]);
@@ -100,8 +99,9 @@ const handleTransfer = async (req, res) => {
     const user = userRows[0];
     let nuevoSaldo = parseFloat(user.saldo || 0);
 
-    if (tipo === 'deposito') nuevoSaldo += montoNum;
-    else if (tipo === 'retiro') {
+    if (tipo === 'deposito') {
+      nuevoSaldo += montoNum;
+    } else if (tipo === 'retiro') {
       if (montoNum > nuevoSaldo) {
         await conn.rollback();
         return res.status(400).json({ error: 'Fondos insuficientes' });
@@ -113,16 +113,25 @@ const handleTransfer = async (req, res) => {
     }
 
     await conn.query('UPDATE usuarios SET saldo = ? WHERE id = ?', [nuevoSaldo, user.id]);
-    await conn.query('INSERT INTO transacciones (usuario_id, tipo, monto) VALUES (?, ?, ?)', [user.id, tipo, montoNum]);
+    await conn.query(
+      'INSERT INTO transacciones (usuario_id, tipo, monto, descripcion) VALUES (?, ?, ?, ?)',
+      [user.id, tipo, montoNum, `Transacción de tipo ${tipo}`]
+    );
 
     await conn.commit();
     conn.release();
 
-    res.status(200).json({ message: 'Transacción exitosa', nuevoSaldo });
+    res.status(200).json({ message: '✅ Transacción exitosa', nuevoSaldo });
   } catch (err) {
+    await conn.rollback();
+    conn.release();
     console.error('❌ Error en la transacción:', err);
     res.status(500).json({ error: 'Error interno en la transacción' });
   }
 };
 
-module.exports = { registerUser, loginUser, handleTransfer };
+module.exports = {
+  registerUser,
+  loginUser,
+  handleTransfer
+};

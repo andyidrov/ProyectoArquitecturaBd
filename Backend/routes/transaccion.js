@@ -23,7 +23,10 @@ router.post('/transaccion', async (req, res) => {
 
     if (tipo === 'deposito') {
       nuevoSaldo += parseFloat(monto);
-      await db.query('INSERT INTO transacciones (usuario_id, tipo, monto) VALUES (?, ?, ?)', [userId, tipo, monto]);
+      await db.query(
+        'INSERT INTO transacciones (usuario_id, tipo, monto, descripcion) VALUES (?, ?, ?, ?)',
+        [userId, tipo, monto, 'Depósito realizado']
+      );
       await db.query('UPDATE usuarios SET saldo = ? WHERE id = ?', [nuevoSaldo, userId]);
       return res.status(200).json({ message: `✅ Depositaste $${parseFloat(monto).toFixed(2)}` });
     }
@@ -34,7 +37,10 @@ router.post('/transaccion', async (req, res) => {
       }
 
       nuevoSaldo -= parseFloat(monto);
-      await db.query('INSERT INTO transacciones (usuario_id, tipo, monto) VALUES (?, ?, ?)', [userId, tipo, monto]);
+      await db.query(
+        'INSERT INTO transacciones (usuario_id, tipo, monto, descripcion) VALUES (?, ?, ?, ?)',
+        [userId, tipo, monto, 'Retiro realizado']
+      );
       await db.query('UPDATE usuarios SET saldo = ? WHERE id = ?', [nuevoSaldo, userId]);
       return res.status(200).json({ message: `💰 Tu saldo disponible es $${nuevoSaldo.toFixed(2)}` });
     }
