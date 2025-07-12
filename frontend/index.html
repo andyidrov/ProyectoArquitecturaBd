@@ -161,7 +161,7 @@
 
   <script>
     let usuarioLogueado = null;
-    const API_URL = 'http://localhost:8080/api';
+    const API_URL = 'https://proyectoarquitecturabd.onrender.com/api';  // URL de Render
 
     // Bloquea la entrada a solo letras, acentos y espacios
     function soloLetrasInput(input) {
@@ -236,170 +236,133 @@
       const data = {
         nombre: document.getElementById('nombre').value.trim(),
         apellido: document.getElementById('apellido').value.trim(),
-        fecha_nacimiento: document.getElementById('fechaNacimiento').value.trim(),
-        estado_civil: document.getElementById('estadoCivil').value,
-        tipo_cuenta: document.getElementById('tipoCuenta').value,
-        cedula: document.getElementById('cedula').value.trim(),
+        fechaNacimiento: document.getElementById('fechaNacimiento').value,
+        estadoCivil: document.getElementById('estadoCivil').value,
+        tipoCuenta: document.getElementById('tipoCuenta').value,
+        cedula: document.getElementById('cedula').value,
         usuario: document.getElementById('usuario').value.trim(),
         correo: document.getElementById('correo').value.trim(),
-        password: document.getElementById('password').value
+        password: document.getElementById('password').value.trim(),
       };
-      const mensajeId = 'registroMsg';
 
       if (camposVacios(data)) {
-        mostrarMensaje(mensajeId, "⚠️ Todos los campos son obligatorios.");
+        mostrarMensaje('registroMsg', 'Todos los campos son obligatorios', true);
         return;
       }
 
       if (!validarCedula(data.cedula)) {
-        mostrarMensaje(mensajeId, "⚠️ La cédula debe tener exactamente 10 dígitos.");
+        mostrarMensaje('registroMsg', 'La cédula debe tener 10 dígitos', true);
         return;
       }
 
       if (!validarCorreo(data.correo)) {
-        mostrarMensaje(mensajeId, "⚠️ Ingresa un correo válido.");
+        mostrarMensaje('registroMsg', 'El correo electrónico no es válido', true);
         return;
       }
-
-      if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(data.nombre)) {
-        mostrarMensaje(mensajeId, "⚠️ El nombre solo debe contener letras y espacios.");
-        return;
-      }
-
-      if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(data.apellido)) {
-        mostrarMensaje(mensajeId, "⚠️ El apellido solo debe contener letras y espacios.");
-        return;
-      }
-
-      if (data.usuario.length > 20) {
-        mostrarMensaje(mensajeId, "⚠️ El usuario debe tener máximo 20 caracteres.");
-        return;
-      }
-
-      // Aquí puedes agregar llamadas API para validar unicidad usuario, correo y cédula antes de enviar
 
       try {
-        const res = await fetch(`${API_URL}/registro`, {
+        const response = await fetch(`${API_URL}/registro`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify(data),
         });
-        const result = await res.json();
-        mostrarMensaje(mensajeId, result.message || result.error, !res.ok);
+        const result = await response.json();
 
-        if (res.ok) {
-          limpiarRegistro();
+        if (response.ok) {
+          mostrarMensaje('registroMsg', 'Cuenta creada exitosamente. Puedes iniciar sesión ahora.', false);
           setVisibleSection('loginSection');
-          mostrarMensaje('loginMsg', "✅ Registro exitoso, por favor inicia sesión.", false);
+        } else {
+          mostrarMensaje('registroMsg', result.message, true);
         }
-      } catch {
-        mostrarMensaje(mensajeId, "⚠️ Error en la comunicación con el servidor.");
+      } catch (error) {
+        mostrarMensaje('registroMsg', 'Error al registrar. Intenta de nuevo.', true);
       }
     }
 
     async function login() {
-      const data = {
-        usuario: document.getElementById('loginUsuario').value.trim(),
-        password: document.getElementById('loginPassword').value
-      };
-      const mensajeId = 'loginMsg';
+      const usuario = document.getElementById('loginUsuario').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
 
-      if (!data.usuario || !data.password) {
-        mostrarMensaje(mensajeId, "⚠️ Debes ingresar usuario y contraseña.");
+      if (!usuario || !password) {
+        mostrarMensaje('loginMsg', 'Usuario y contraseña son requeridos.', true);
         return;
       }
 
       try {
-        const res = await fetch(`${API_URL}/login`, {
+        const response = await fetch(`${API_URL}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify({ usuario, password }),
         });
-        const result = await res.json();
-        mostrarMensaje(mensajeId, result.message || result.error, !res.ok);
+        const result = await response.json();
 
-        if (res.ok) {
+        if (response.ok) {
           usuarioLogueado = result.usuario;
-          document.getElementById('usuarioActivo').textContent = usuarioLogueado;
+          mostrarMensaje('loginMsg', 'Inicio de sesión exitoso', false);
           setVisibleSection('transaccionSection');
-          mostrarSaldo();
-          mostrarMensaje(mensajeId, '');
-        }
-      } catch {
-        mostrarMensaje(mensajeId, "⚠️ Error en la comunicación con el servidor.");
-      }
-    }
-
-    async function mostrarSaldo() {
-      try {
-        const res = await fetch(`${API_URL}/saldo/${usuarioLogueado}`);
-        const data = await res.json();
-        if (res.ok) {
-          document.getElementById('usuarioActivo').textContent = `${usuarioLogueado} - 💰 Saldo disponible: $${parseFloat(data.saldo).toFixed(2)}`;
-          mostrarMensaje('saldoMsg', '', false);
+          document.getElementById('usuarioActivo').textContent = usuarioLogueado;
         } else {
-          mostrarMensaje('saldoMsg', data.error);
+          mostrarMensaje('loginMsg', result.message, true);
         }
-      } catch {
-        mostrarMensaje('saldoMsg', "⚠️ No se pudo obtener el saldo.");
+      } catch (error) {
+        mostrarMensaje('loginMsg', 'Error al iniciar sesión. Intenta de nuevo.', true);
       }
     }
 
     async function transaccion() {
       const tipo = document.getElementById('tipoTransaccion').value;
       const monto = parseFloat(document.getElementById('monto').value);
-      const mensajeId = 'transaccionMsg';
 
-      if (!usuarioLogueado || !tipo || isNaN(monto) || monto <= 0) {
-        mostrarMensaje(mensajeId, "⚠️ Datos inválidos para la transacción.");
+      if (isNaN(monto) || monto <= 0) {
+        mostrarMensaje('transaccionMsg', 'El monto debe ser mayor a cero', true);
         return;
       }
 
       try {
-        const res = await fetch(`${API_URL}/transaccion`, {
+        const response = await fetch(`${API_URL}/transacciones`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ usuario: usuarioLogueado, tipo, monto })
+          body: JSON.stringify({ tipo, monto, usuario: usuarioLogueado }),
         });
-        const result = await res.json();
-        mostrarMensaje(mensajeId, result.message || result.error, !res.ok);
-        if (res.ok) mostrarSaldo();
-      } catch {
-        mostrarMensaje(mensajeId, "⚠️ Error en la comunicación con el servidor.");
+        const result = await response.json();
+
+        if (response.ok) {
+          mostrarMensaje('transaccionMsg', `Transacción de ${tipo} realizada con éxito`, false);
+        } else {
+          mostrarMensaje('transaccionMsg', result.message, true);
+        }
+      } catch (error) {
+        mostrarMensaje('transaccionMsg', 'Error en la transacción. Intenta de nuevo.', true);
       }
     }
 
     async function transferir() {
       const usuarioDestino = document.getElementById('usuarioDestino').value.trim();
       const monto = parseFloat(document.getElementById('montoTransferencia').value);
-      const mensajeId = 'transferenciaMsg';
 
       if (!usuarioDestino || isNaN(monto) || monto <= 0) {
-        mostrarMensaje(mensajeId, "⚠️ Datos inválidos para la transferencia.");
+        mostrarMensaje('transferenciaMsg', 'Completa todos los campos correctamente', true);
         return;
       }
 
       try {
-        const res = await fetch(`${API_URL}/transferencia`, {
+        const response = await fetch(`${API_URL}/transferencias`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            usuario_origen: usuarioLogueado,
-            usuario_destino: usuarioDestino,
-            monto
-          })
+          body: JSON.stringify({ usuarioOrigen: usuarioLogueado, usuarioDestino, monto }),
         });
-        const result = await res.json();
-        mostrarMensaje(mensajeId, result.message || result.error, !res.ok);
-        if (res.ok) {
-          mostrarSaldo();
-          limpiarTransferencia();
+        const result = await response.json();
+
+        if (response.ok) {
+          mostrarMensaje('transferenciaMsg', 'Transferencia realizada con éxito', false);
+          setVisibleSection('transaccionSection');
+        } else {
+          mostrarMensaje('transferenciaMsg', result.message, true);
         }
-      } catch {
-        mostrarMensaje(mensajeId, "⚠️ Error en la comunicación con el servidor.");
+      } catch (error) {
+        mostrarMensaje('transferenciaMsg', 'Error en la transferencia. Intenta de nuevo.', true);
       }
     }
   </script>
 </body>
 </html>
-
