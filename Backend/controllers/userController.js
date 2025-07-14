@@ -76,10 +76,68 @@ const loginUser = async (req, res) => {
   }
 };
 
-// ✅ REMOVED: handleTransfer function - Now handled in routes/transaccion.js
+// 🔄 Actualizar usuario (NUEVA FUNCIÓN)
+const updateUser = async (req, res) => {
+  try {
+    const { usuario, correo, password } = req.body;
+    
+    if (!usuario) {
+      return res.status(400).json({ error: 'Usuario es requerido' });
+    }
+
+    // Verificar que el usuario existe
+    const [userExists] = await db.query('SELECT id FROM usuarios WHERE usuario = ?', [usuario]);
+    if (userExists.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    let updateFields = [];
+    let updateValues = [];
+
+    // Actualizar correo si se proporciona
+    if (correo && correo.trim() !== '') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+        return res.status(400).json({ error: 'Formato de correo inválido' });
+      }
+      
+      // Verificar que el correo no esté en uso por otro usuario
+      const [emailExists] = await db.query('SELECT id FROM usuarios WHERE correo = ? AND usuario != ?', [correo, usuario]);
+      if (emailExists.length > 0) {
+        return res.status(400).json({ error: 'El correo ya está en uso por otro usuario' });
+      }
+      
+      updateFields.push('correo = ?');
+      updateValues.push(correo);
+    }
+
+    // Actualizar contraseña si se proporciona
+    if (password && password.trim() !== '') {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateFields.push('password = ?');
+      updateValues.push(hashedPassword);
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No hay campos para actualizar' });
+    }
+
+    updateValues.push(usuario);
+    
+    await db.query(
+      `UPDATE usuarios SET ${updateFields.join(', ')} WHERE usuario = ?`,
+      updateValues
+    );
+
+    res.status(200).json({ message: '✅ Usuario actualizado con éxito' });
+  } catch (err) {
+    console.error('❌ Error al actualizar usuario:', err.message);
+    if (err.sqlMessage) console.error('🛑 MySQL Error:', err.sqlMessage);
+    res.status(500).json({ error: 'Error interno al actualizar usuario' });
+  }
+};
 
 module.exports = {
   registerUser,
-  loginUser
-  // handleTransfer removed - using routes/transaccion.js instead
+  loginUser,
+  updateUser  // AGREGADO: Nueva función exportada
 };

@@ -1,6 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../models/db');
+const { registerUser, loginUser, updateUser } = require('../controllers/userController'); // AGREGADO: Importar controladores
+
+// 🧾 POST /api/registro - Registro de usuario (usando controlador)
+router.post('/registro', registerUser);
+
+// 🔐 POST /api/login - Login de usuario (usando controlador)
+router.post('/login', loginUser);
+
+// 🔄 PUT /api/usuario - Actualizar usuario (NUEVA RUTA)
+router.put('/usuario', updateUser);
 
 // 🔍 GET /api/usuarios - Lista básica de usuarios con su saldo
 router.get('/usuarios', async (req, res) => {
@@ -38,7 +48,8 @@ router.get('/saldo/:usuario', async (req, res) => {
     res.status(500).json({ error: 'Error interno al consultar el saldo.' });
   }
 });
-// ✅ NUEVO: GET /api/historial-completo/:usuario - Todas las transacciones
+
+// ✅ GET /api/historial-completo/:usuario - Todas las transacciones
 router.get('/historial-completo/:usuario', async (req, res) => {
   const usuario = req.params.usuario;
 

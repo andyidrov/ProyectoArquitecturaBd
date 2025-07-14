@@ -98,6 +98,14 @@
     .saldo-btn:hover {
       background-color: #21867a;
     }
+    /* Botón de actualizar */
+    .update-btn {
+      background-color: #f77f00;
+      margin-bottom: 5px;
+    }
+    .update-btn:hover {
+      background-color: #d66d00;
+    }
     /* Botón de cerrar sesión */
     .logout-btn {
       background-color: #e63946;
@@ -105,6 +113,20 @@
     }
     .logout-btn:hover {
       background-color: #d62839;
+    }
+    /* Estilo para campos opcionales */
+    .optional-field {
+      position: relative;
+    }
+    .optional-field::after {
+      content: "(Opcional)";
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+      font-size: 0.8rem;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -148,6 +170,21 @@
       <p id="registroMsg" class="message hide"></p>
     </div>
 
+    <!-- 🔄 ACTUALIZAR USUARIO -->
+    <div id="actualizarSection" class="form-section">
+      <h2>Actualizar Datos</h2>
+      <p>Usuario: <strong id="usuarioActualizar"></strong></p>
+      <div class="optional-field">
+        <input type="email" id="nuevoCorreo" placeholder="Nuevo correo electrónico" />
+      </div>
+      <div class="optional-field">
+        <input type="password" id="nuevaPassword" placeholder="Nueva contraseña" />
+      </div>
+      <button onclick="actualizarUsuario()">Actualizar Datos</button>
+      <p id="actualizarMsg" class="message hide"></p>
+      <button onclick="volverTransacciones()">⬅ Volver</button>
+    </div>
+
     <!-- 💰 TRANSACCIONES -->
     <div id="transaccionSection" class="form-section">
       <h2>Transacciones</h2>
@@ -163,6 +200,7 @@
       <p id="transaccionMsg" class="message hide"></p>
 
       <button onclick="mostrarTransferencia()">Hacer Transferencia ➡</button>
+      <button class="update-btn" onclick="mostrarActualizar()">⚙️ Actualizar Datos</button>
       <button class="logout-btn" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
@@ -201,6 +239,13 @@
     mostrarMensaje('loginMsg', '', false);
   }
 
+  function mostrarActualizar() {
+    setVisibleSection('actualizarSection');
+    document.getElementById('usuarioActualizar').textContent = usuarioLogueado;
+    limpiarActualizar();
+    mostrarMensaje('actualizarMsg', '', false);
+  }
+
   function mostrarTransferencia() {
     setVisibleSection('transferenciaSection');
     document.getElementById('usuarioOrigen').textContent = usuarioLogueado;
@@ -222,7 +267,7 @@
   }
 
   function setVisibleSection(idVisible) {
-    ['loginSection', 'registroSection', 'transaccionSection', 'transferenciaSection'].forEach(id => {
+    ['loginSection', 'registroSection', 'actualizarSection', 'transaccionSection', 'transferenciaSection'].forEach(id => {
       const elem = document.getElementById(id);
       if (id === idVisible) {
         elem.classList.add('visible');
@@ -264,6 +309,10 @@
   function limpiarRegistro() {
     ['nombre', 'apellido', 'fechaNacimiento', 'estadoCivil', 'tipoCuenta', 'cedula', 'usuario', 'correo', 'password']
       .forEach(id => document.getElementById(id).value = '');
+  }
+
+  function limpiarActualizar() {
+    ['nuevoCorreo', 'nuevaPassword'].forEach(id => document.getElementById(id).value = '');
   }
 
   function limpiarTransferencia() {
@@ -349,6 +398,48 @@
     } catch (error) {
       console.error('Error:', error);
       mostrarMensaje('loginMsg', 'Error al iniciar sesión. Intenta de nuevo.', true);
+    }
+  }
+
+  async function actualizarUsuario() {
+    const nuevoCorreo = document.getElementById('nuevoCorreo').value.trim();
+    const nuevaPassword = document.getElementById('nuevaPassword').value.trim();
+
+    if (!nuevoCorreo && !nuevaPassword) {
+      mostrarMensaje('actualizarMsg', 'Debes ingresar al menos un campo para actualizar', true);
+      return;
+    }
+
+    if (nuevoCorreo && !validarCorreo(nuevoCorreo)) {
+      mostrarMensaje('actualizarMsg', 'El formato del correo electrónico no es válido', true);
+      return;
+    }
+
+    const data = {
+      usuario: usuarioLogueado
+    };
+
+    if (nuevoCorreo) data.correo = nuevoCorreo;
+    if (nuevaPassword) data.password = nuevaPassword;
+
+    try {
+      const response = await fetch(`${API_URL}/usuario`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        mostrarMensaje('actualizarMsg', 'Datos actualizados exitosamente', false);
+        limpiarActualizar();
+        setTimeout(() => volverTransacciones(), 2000);
+      } else {
+        mostrarMensaje('actualizarMsg', result.message || result.error || 'Error desconocido', true);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      mostrarMensaje('actualizarMsg', 'Error al actualizar datos. Intenta de nuevo.', true);
     }
   }
 
@@ -455,6 +546,9 @@
             break;
           case 'registroSection':
             registrar();
+            break;
+          case 'actualizarSection':
+            actualizarUsuario();
             break;
           case 'transaccionSection':
             transaccion();
