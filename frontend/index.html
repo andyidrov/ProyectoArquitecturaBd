@@ -90,6 +90,22 @@
     #transaccionSection button, #transferenciaSection button {
       margin-bottom: 10px;
     }
+    /* Botón de saldo */
+    .saldo-btn {
+      background-color: #2a9d8f;
+      margin-bottom: 5px;
+    }
+    .saldo-btn:hover {
+      background-color: #21867a;
+    }
+    /* Botón de cerrar sesión */
+    .logout-btn {
+      background-color: #e63946;
+      margin-top: 10px;
+    }
+    .logout-btn:hover {
+      background-color: #d62839;
+    }
   </style>
 </head>
 <body>
@@ -128,6 +144,7 @@
       <input type="email" id="correo" placeholder="Correo electrónico" />
       <input type="password" id="password" placeholder="Contraseña" />
       <button onclick="registrar()">Registrar</button>
+      <p><a onclick="mostrarLogin()">¿Ya tienes cuenta? Inicia sesión</a></p>
       <p id="registroMsg" class="message hide"></p>
     </div>
 
@@ -135,16 +152,18 @@
     <div id="transaccionSection" class="form-section">
       <h2>Transacciones</h2>
       <p>Bienvenido, <strong id="usuarioActivo"></strong></p>
+      <button class="saldo-btn" onclick="consultarSaldo()">💰 Consultar Saldo</button>
       <p id="saldoMsg" class="message hide"></p>
       <select id="tipoTransaccion">
         <option value="deposito">Depósito</option>
         <option value="retiro">Retiro</option>
       </select>
-      <input type="number" id="monto" placeholder="Monto" />
+      <input type="number" id="monto" placeholder="Monto" step="0.01" min="0.01" />
       <button onclick="transaccion()">Realizar Transacción</button>
       <p id="transaccionMsg" class="message hide"></p>
 
       <button onclick="mostrarTransferencia()">Hacer Transferencia ➡</button>
+      <button class="logout-btn" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
 
     <!-- 🔄 TRANSFERENCIA -->
@@ -152,7 +171,7 @@
       <h2>Transferencia</h2>
       <p>Origen: <strong id="usuarioOrigen"></strong></p>
       <input type="text" id="usuarioDestino" placeholder="Usuario destino" />
-      <input type="number" id="montoTransferencia" placeholder="Monto a transferir" />
+      <input type="number" id="montoTransferencia" placeholder="Monto a transferir" step="0.01" min="0.01" />
       <button onclick="transferir()">Transferir</button>
       <p id="transferenciaMsg" class="message hide"></p>
       <button onclick="volverTransacciones()">⬅ Volver</button>
@@ -166,6 +185,13 @@
   // Bloquea la entrada a solo letras, acentos y espacios
   function soloLetrasInput(input) {
     input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+  }
+
+  function mostrarLogin() {
+    setVisibleSection('loginSection');
+    limpiarLogin();
+    mostrarMensaje('loginMsg', '', false);
+    mostrarMensaje('registroMsg', '', false);
   }
 
   function mostrarRegistro() {
@@ -185,6 +211,14 @@
   function volverTransacciones() {
     setVisibleSection('transaccionSection');
     mostrarMensaje('transaccionMsg', '', false);
+  }
+
+  function cerrarSesion() {
+    usuarioLogueado = null;
+    setVisibleSection('loginSection');
+    limpiarLogin();
+    mostrarMensaje('loginMsg', '', false);
+    mostrarMensaje('saldoMsg', '', false);
   }
 
   function setVisibleSection(idVisible) {
@@ -223,6 +257,10 @@
     }
   }
 
+  function limpiarLogin() {
+    ['loginUsuario', 'loginPassword'].forEach(id => document.getElementById(id).value = '');
+  }
+
   function limpiarRegistro() {
     ['nombre', 'apellido', 'fechaNacimiento', 'estadoCivil', 'tipoCuenta', 'cedula', 'usuario', 'correo', 'password']
       .forEach(id => document.getElementById(id).value = '');
@@ -236,9 +274,9 @@
     const data = {
       nombre: document.getElementById('nombre').value.trim(),
       apellido: document.getElementById('apellido').value.trim(),
-      fechaNacimiento: document.getElementById('fechaNacimiento').value,
-      estadoCivil: document.getElementById('estadoCivil').value,
-      tipoCuenta: document.getElementById('tipoCuenta').value,
+      fecha_nacimiento: document.getElementById('fechaNacimiento').value,
+      estado_civil: document.getElementById('estadoCivil').value,
+      tipo_cuenta: document.getElementById('tipoCuenta').value,
       cedula: document.getElementById('cedula').value,
       usuario: document.getElementById('usuario').value.trim(),
       correo: document.getElementById('correo').value.trim(),
@@ -270,11 +308,12 @@
 
       if (response.ok) {
         mostrarMensaje('registroMsg', 'Cuenta creada exitosamente. Puedes iniciar sesión ahora.', false);
-        setVisibleSection('loginSection');
+        setTimeout(() => mostrarLogin(), 2000);
       } else {
         mostrarMensaje('registroMsg', result.message || result.error || 'Error desconocido', true);
       }
     } catch (error) {
+      console.error('Error:', error);
       mostrarMensaje('registroMsg', 'Error al registrar. Intenta de nuevo.', true);
     }
   }
@@ -301,11 +340,36 @@
         mostrarMensaje('loginMsg', 'Inicio de sesión exitoso', false);
         setVisibleSection('transaccionSection');
         document.getElementById('usuarioActivo').textContent = usuarioLogueado;
+        // Limpiar mensajes anteriores
+        mostrarMensaje('saldoMsg', '', false);
+        mostrarMensaje('transaccionMsg', '', false);
       } else {
         mostrarMensaje('loginMsg', result.message || result.error || 'Error desconocido', true);
       }
     } catch (error) {
+      console.error('Error:', error);
       mostrarMensaje('loginMsg', 'Error al iniciar sesión. Intenta de nuevo.', true);
+    }
+  }
+
+  async function consultarSaldo() {
+    if (!usuarioLogueado) {
+      mostrarMensaje('saldoMsg', 'No hay usuario logueado', true);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/saldo/${usuarioLogueado}`);
+      const result = await response.json();
+
+      if (response.ok) {
+        mostrarMensaje('saldoMsg', `Tu saldo actual es: $${parseFloat(result.saldo || 0).toFixed(2)}`, false);
+      } else {
+        mostrarMensaje('saldoMsg', result.error || 'Error al consultar saldo', true);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      mostrarMensaje('saldoMsg', 'Error al consultar saldo. Intenta de nuevo.', true);
     }
   }
 
@@ -319,7 +383,7 @@
     }
 
     try {
-      const response = await fetch(`${API_URL}/transacciones`, {
+      const response = await fetch(`${API_URL}/transaccion`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tipo, monto, usuario: usuarioLogueado }),
@@ -327,42 +391,81 @@
       const result = await response.json();
 
       if (response.ok) {
-        mostrarMensaje('transaccionMsg', `Transacción de ${tipo} realizada con éxito`, false);
+        mostrarMensaje('transaccionMsg', result.message || `Transacción de ${tipo} realizada con éxito`, false);
+        document.getElementById('monto').value = '';
+        // Actualizar saldo automáticamente
+        setTimeout(() => consultarSaldo(), 500);
       } else {
-        mostrarMensaje('transaccionMsg', result.message || result.error || 'Error desconocido', true);
+        mostrarMensaje('transaccionMsg', result.error || 'Error en la transacción', true);
       }
     } catch (error) {
+      console.error('Error:', error);
       mostrarMensaje('transaccionMsg', 'Error en la transacción. Intenta de nuevo.', true);
     }
   }
 
   async function transferir() {
-    const usuarioDestino = document.getElementById('usuarioDestino').value.trim();
+    const usuario_destino = document.getElementById('usuarioDestino').value.trim();
     const monto = parseFloat(document.getElementById('montoTransferencia').value);
 
-    if (!usuarioDestino || isNaN(monto) || monto <= 0) {
+    if (!usuario_destino || isNaN(monto) || monto <= 0) {
       mostrarMensaje('transferenciaMsg', 'Completa todos los campos correctamente', true);
       return;
     }
 
+    if (usuario_destino === usuarioLogueado) {
+      mostrarMensaje('transferenciaMsg', 'No puedes transferir a ti mismo', true);
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_URL}/transferencias`, {
+      const response = await fetch(`${API_URL}/transferencia`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuarioOrigen: usuarioLogueado, usuarioDestino, monto }),
+        body: JSON.stringify({ 
+          usuario_origen: usuarioLogueado, 
+          usuario_destino, 
+          monto 
+        }),
       });
       const result = await response.json();
 
       if (response.ok) {
-        mostrarMensaje('transferenciaMsg', 'Transferencia realizada con éxito', false);
-        setVisibleSection('transaccionSection');
+        mostrarMensaje('transferenciaMsg', result.message || 'Transferencia realizada con éxito', false);
+        limpiarTransferencia();
+        setTimeout(() => volverTransacciones(), 2000);
       } else {
-        mostrarMensaje('transferenciaMsg', result.message || result.error || 'Error desconocido', true);
+        mostrarMensaje('transferenciaMsg', result.error || 'Error en la transferencia', true);
       }
     } catch (error) {
+      console.error('Error:', error);
       mostrarMensaje('transferenciaMsg', 'Error en la transferencia. Intenta de nuevo.', true);
     }
   }
+
+  // Manejo de Enter en formularios
+  document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      const activeSection = document.querySelector('.form-section.visible');
+      if (activeSection) {
+        const sectionId = activeSection.id;
+        switch(sectionId) {
+          case 'loginSection':
+            login();
+            break;
+          case 'registroSection':
+            registrar();
+            break;
+          case 'transaccionSection':
+            transaccion();
+            break;
+          case 'transferenciaSection':
+            transferir();
+            break;
+        }
+      }
+    }
+  });
 </script>
 </body>
 </html>
