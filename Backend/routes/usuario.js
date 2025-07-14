@@ -38,7 +38,41 @@ router.get('/saldo/:usuario', async (req, res) => {
     res.status(500).json({ error: 'Error interno al consultar el saldo.' });
   }
 });
+// ✅ NUEVO: GET /api/historial-completo/:usuario - Todas las transacciones
+router.get('/historial-completo/:usuario', async (req, res) => {
+  const usuario = req.params.usuario;
+
+  if (!usuario) {
+    return res.status(400).json({ error: 'Usuario requerido.' });
+  }
+
+  try {
+    const [historial] = await db.query(`
+      SELECT t.id, t.tipo, t.monto, t.fecha, t.descripcion, u.usuario, u.nombre
+      FROM transacciones t
+      JOIN usuarios u ON t.usuario_id = u.id
+      WHERE u.usuario = ?
+      ORDER BY t.fecha DESC
+    `, [usuario]);
+
+    // Separar por tipo para el frontend
+    const transacciones = historial.filter(t => ['deposito', 'retiro'].includes(t.tipo));
+    const transferencias = historial.filter(t => ['transferencia_envio', 'transferencia_recibo'].includes(t.tipo));
+
+    res.status(200).json({ 
+      historial_completo: historial,
+      transacciones,
+      transferencias,
+      totales: {
+        total: historial.length,
+        transacciones: transacciones.length,
+        transferencias: transferencias.length
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener historial completo:', error);
+    res.status(500).json({ error: 'Error interno al obtener el historial.' });
+  }
+});
 
 module.exports = router;
-
-

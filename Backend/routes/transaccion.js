@@ -1,56 +1,39 @@
+
+// ====== AGREGAR A transaccion.js ======
 const express = require('express');
 const router = express.Router();
 const db = require('../models/db');
 
-// Ruta POST para transferencias
+// Ruta POST para transferencias (YA EXISTE)
 router.post('/transaccion', async (req, res) => {
-  const { usuario, tipo, monto } = req.body;
+  // ... tu código existente ...
+});
 
-  if (!usuario || !tipo || !monto || isNaN(monto)) {
-    return res.status(400).json({ error: 'Datos incompletos o inválidos.' });
+// ✅ NUEVO: GET /api/transacciones/:usuario - Solo depósitos y retiros
+router.get('/transacciones/:usuario', async (req, res) => {
+  const usuario = req.params.usuario;
+
+  if (!usuario) {
+    return res.status(400).json({ error: 'Usuario requerido.' });
   }
 
   try {
-    const [usuarios] = await db.query('SELECT * FROM usuarios WHERE usuario = ?', [usuario]);
+    const [transacciones] = await db.query(`
+      SELECT t.id, t.tipo, t.monto, t.fecha, t.descripcion, u.usuario, u.nombre
+      FROM transacciones t
+      JOIN usuarios u ON t.usuario_id = u.id
+      WHERE u.usuario = ? AND t.tipo IN ('deposito', 'retiro')
+      ORDER BY t.fecha DESC
+    `, [usuario]);
 
-    if (usuarios.length === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado.' });
-    }
-
-    const user = usuarios[0];
-    const userId = user.id;
-    let nuevoSaldo = parseFloat(user.saldo);
-
-    if (tipo === 'deposito') {
-      nuevoSaldo += parseFloat(monto);
-      await db.query(
-        'INSERT INTO transacciones (usuario_id, tipo, monto, descripcion) VALUES (?, ?, ?, ?)',
-        [userId, tipo, monto, 'Depósito realizado']
-      );
-      await db.query('UPDATE usuarios SET saldo = ? WHERE id = ?', [nuevoSaldo, userId]);
-      return res.status(200).json({ message: `✅ Depositaste $${parseFloat(monto).toFixed(2)}` });
-    }
-
-    if (tipo === 'retiro') {
-      if (parseFloat(monto) > user.saldo) {
-        return res.status(400).json({ error: '❌ Saldo insuficiente.' });
-      }
-
-      nuevoSaldo -= parseFloat(monto);
-      await db.query(
-        'INSERT INTO transacciones (usuario_id, tipo, monto, descripcion) VALUES (?, ?, ?, ?)',
-        [userId, tipo, monto, 'Retiro realizado']
-      );
-      await db.query('UPDATE usuarios SET saldo = ? WHERE id = ?', [nuevoSaldo, userId]);
-      return res.status(200).json({ message: `💰 Tu saldo disponible es $${nuevoSaldo.toFixed(2)}` });
-    }
-
-    return res.status(400).json({ error: 'Tipo de transacción no válido.' });
+    res.status(200).json({ 
+      transacciones,
+      total: transacciones.length
+    });
   } catch (error) {
-    console.error('❌ Error al procesar la transacción:', error);
-    res.status(500).json({ error: 'Error interno en la transacción.' });
+    console.error('❌ Error al obtener historial de transacciones:', error);
+    res.status(500).json({ error: 'Error interno al obtener el historial.' });
   }
 });
 
-// ✅ Exporta el router directamente
 module.exports = router;
