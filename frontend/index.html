@@ -160,209 +160,209 @@
   </main>
 
   <script>
-    let usuarioLogueado = null;
-    const API_URL = window.location.origin + '/api';  // URL adaptable
+  let usuarioLogueado = null;
+  const API_URL = window.location.origin + '/api';  // URL adaptable
 
-    // Bloquea la entrada a solo letras, acentos y espacios
-    function soloLetrasInput(input) {
-      input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
-    }
+  // Bloquea la entrada a solo letras, acentos y espacios
+  function soloLetrasInput(input) {
+    input.value = input.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+  }
 
-    function mostrarRegistro() {
-      setVisibleSection('registroSection');
-      limpiarRegistro();
-      mostrarMensaje('registroMsg', '', false);
-      mostrarMensaje('loginMsg', '', false);
-    }
+  function mostrarRegistro() {
+    setVisibleSection('registroSection');
+    limpiarRegistro();
+    mostrarMensaje('registroMsg', '', false);
+    mostrarMensaje('loginMsg', '', false);
+  }
 
-    function mostrarTransferencia() {
-      setVisibleSection('transferenciaSection');
-      document.getElementById('usuarioOrigen').textContent = usuarioLogueado;
-      limpiarTransferencia();
-      mostrarMensaje('transferenciaMsg', '', false);
-    }
+  function mostrarTransferencia() {
+    setVisibleSection('transferenciaSection');
+    document.getElementById('usuarioOrigen').textContent = usuarioLogueado;
+    limpiarTransferencia();
+    mostrarMensaje('transferenciaMsg', '', false);
+  }
 
-    function volverTransacciones() {
-      setVisibleSection('transaccionSection');
-      mostrarMensaje('transaccionMsg', '', false);
-    }
+  function volverTransacciones() {
+    setVisibleSection('transaccionSection');
+    mostrarMensaje('transaccionMsg', '', false);
+  }
 
-    function setVisibleSection(idVisible) {
-      ['loginSection', 'registroSection', 'transaccionSection', 'transferenciaSection'].forEach(id => {
-        const elem = document.getElementById(id);
-        if (id === idVisible) {
-          elem.classList.add('visible');
-          elem.style.opacity = '1';
-        } else {
-          elem.classList.remove('visible');
-          elem.style.opacity = '0';
-        }
-      });
-    }
-
-    function camposVacios(obj) {
-      return Object.values(obj).some(val => val.trim() === "");
-    }
-
-    function validarCedula(cedula) {
-      return /^\d{10}$/.test(cedula);
-    }
-
-    function validarCorreo(correo) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
-    }
-
-    function mostrarMensaje(id, msg, isError = true) {
-      const p = document.getElementById(id);
-      p.textContent = msg;
-      if (!msg) {
-        p.classList.add('hide');
+  function setVisibleSection(idVisible) {
+    ['loginSection', 'registroSection', 'transaccionSection', 'transferenciaSection'].forEach(id => {
+      const elem = document.getElementById(id);
+      if (id === idVisible) {
+        elem.classList.add('visible');
+        elem.style.opacity = '1';
       } else {
-        p.classList.remove('hide');
-        p.classList.toggle('success', !isError);
+        elem.classList.remove('visible');
+        elem.style.opacity = '0';
       }
+    });
+  }
+
+  function camposVacios(obj) {
+    return Object.values(obj).some(val => val.trim() === "");
+  }
+
+  function validarCedula(cedula) {
+    return /^\d{10}$/.test(cedula);
+  }
+
+  function validarCorreo(correo) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
+  }
+
+  function mostrarMensaje(id, msg, isError = true) {
+    const p = document.getElementById(id);
+    p.textContent = msg;
+    if (!msg) {
+      p.classList.add('hide');
+    } else {
+      p.classList.remove('hide');
+      p.classList.toggle('success', !isError);
+    }
+  }
+
+  function limpiarRegistro() {
+    ['nombre', 'apellido', 'fechaNacimiento', 'estadoCivil', 'tipoCuenta', 'cedula', 'usuario', 'correo', 'password']
+      .forEach(id => document.getElementById(id).value = '');
+  }
+
+  function limpiarTransferencia() {
+    ['usuarioDestino', 'montoTransferencia'].forEach(id => document.getElementById(id).value = '');
+  }
+
+  async function registrar() {
+    const data = {
+      nombre: document.getElementById('nombre').value.trim(),
+      apellido: document.getElementById('apellido').value.trim(),
+      fechaNacimiento: document.getElementById('fechaNacimiento').value,
+      estadoCivil: document.getElementById('estadoCivil').value,
+      tipoCuenta: document.getElementById('tipoCuenta').value,
+      cedula: document.getElementById('cedula').value,
+      usuario: document.getElementById('usuario').value.trim(),
+      correo: document.getElementById('correo').value.trim(),
+      password: document.getElementById('password').value.trim(),
+    };
+
+    if (camposVacios(data)) {
+      mostrarMensaje('registroMsg', 'Todos los campos son obligatorios', true);
+      return;
     }
 
-    function limpiarRegistro() {
-      ['nombre', 'apellido', 'fechaNacimiento', 'estadoCivil', 'tipoCuenta', 'cedula', 'usuario', 'correo', 'password']
-        .forEach(id => document.getElementById(id).value = '');
+    if (!validarCedula(data.cedula)) {
+      mostrarMensaje('registroMsg', 'La cédula debe tener 10 dígitos', true);
+      return;
     }
 
-    function limpiarTransferencia() {
-      ['usuarioDestino', 'montoTransferencia'].forEach(id => document.getElementById(id).value = '');
+    if (!validarCorreo(data.correo)) {
+      mostrarMensaje('registroMsg', 'El correo electrónico no es válido', true);
+      return;
     }
 
-    async function registrar() {
-      const data = {
-        nombre: document.getElementById('nombre').value.trim(),
-        apellido: document.getElementById('apellido').value.trim(),
-        fechaNacimiento: document.getElementById('fechaNacimiento').value,
-        estadoCivil: document.getElementById('estadoCivil').value,
-        tipoCuenta: document.getElementById('tipoCuenta').value,
-        cedula: document.getElementById('cedula').value,
-        usuario: document.getElementById('usuario').value.trim(),
-        correo: document.getElementById('correo').value.trim(),
-        password: document.getElementById('password').value.trim(),
-      };
+    try {
+      const response = await fetch(`${API_URL}/registro`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
 
-      if (camposVacios(data)) {
-        mostrarMensaje('registroMsg', 'Todos los campos son obligatorios', true);
-        return;
+      if (response.ok) {
+        mostrarMensaje('registroMsg', 'Cuenta creada exitosamente. Puedes iniciar sesión ahora.', false);
+        setVisibleSection('loginSection');
+      } else {
+        mostrarMensaje('registroMsg', result.message || result.error || 'Error desconocido', true);
       }
+    } catch (error) {
+      mostrarMensaje('registroMsg', 'Error al registrar. Intenta de nuevo.', true);
+    }
+  }
 
-      if (!validarCedula(data.cedula)) {
-        mostrarMensaje('registroMsg', 'La cédula debe tener 10 dígitos', true);
-        return;
-      }
+  async function login() {
+    const usuario = document.getElementById('loginUsuario').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
 
-      if (!validarCorreo(data.correo)) {
-        mostrarMensaje('registroMsg', 'El correo electrónico no es válido', true);
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_URL}/registro`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-        const result = await response.json();
-
-        if (response.ok) {
-          mostrarMensaje('registroMsg', 'Cuenta creada exitosamente. Puedes iniciar sesión ahora.', false);
-          setVisibleSection('loginSection');
-        } else {
-          mostrarMensaje('registroMsg', result.message, true);
-        }
-      } catch (error) {
-        mostrarMensaje('registroMsg', 'Error al registrar. Intenta de nuevo.', true);
-      }
+    if (!usuario || !password) {
+      mostrarMensaje('loginMsg', 'Usuario y contraseña son requeridos.', true);
+      return;
     }
 
-    async function login() {
-      const usuario = document.getElementById('loginUsuario').value.trim();
-      const password = document.getElementById('loginPassword').value.trim();
+    try {
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario, password }),
+      });
+      const result = await response.json();
 
-      if (!usuario || !password) {
-        mostrarMensaje('loginMsg', 'Usuario y contraseña son requeridos.', true);
-        return;
+      if (response.ok) {
+        usuarioLogueado = result.usuario;
+        mostrarMensaje('loginMsg', 'Inicio de sesión exitoso', false);
+        setVisibleSection('transaccionSection');
+        document.getElementById('usuarioActivo').textContent = usuarioLogueado;
+      } else {
+        mostrarMensaje('loginMsg', result.message || result.error || 'Error desconocido', true);
       }
+    } catch (error) {
+      mostrarMensaje('loginMsg', 'Error al iniciar sesión. Intenta de nuevo.', true);
+    }
+  }
 
-      try {
-        const response = await fetch(`${API_URL}/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ usuario, password }),
-        });
-        const result = await response.json();
+  async function transaccion() {
+    const tipo = document.getElementById('tipoTransaccion').value;
+    const monto = parseFloat(document.getElementById('monto').value);
 
-        if (response.ok) {
-          usuarioLogueado = result.usuario;
-          mostrarMensaje('loginMsg', 'Inicio de sesión exitoso', false);
-          setVisibleSection('transaccionSection');
-          document.getElementById('usuarioActivo').textContent = usuarioLogueado;
-        } else {
-          mostrarMensaje('loginMsg', result.message, true);
-        }
-      } catch (error) {
-        mostrarMensaje('loginMsg', 'Error al iniciar sesión. Intenta de nuevo.', true);
-      }
+    if (isNaN(monto) || monto <= 0) {
+      mostrarMensaje('transaccionMsg', 'El monto debe ser mayor a cero', true);
+      return;
     }
 
-    async function transaccion() {
-      const tipo = document.getElementById('tipoTransaccion').value;
-      const monto = parseFloat(document.getElementById('monto').value);
+    try {
+      const response = await fetch(`${API_URL}/transacciones`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tipo, monto, usuario: usuarioLogueado }),
+      });
+      const result = await response.json();
 
-      if (isNaN(monto) || monto <= 0) {
-        mostrarMensaje('transaccionMsg', 'El monto debe ser mayor a cero', true);
-        return;
+      if (response.ok) {
+        mostrarMensaje('transaccionMsg', `Transacción de ${tipo} realizada con éxito`, false);
+      } else {
+        mostrarMensaje('transaccionMsg', result.message || result.error || 'Error desconocido', true);
       }
+    } catch (error) {
+      mostrarMensaje('transaccionMsg', 'Error en la transacción. Intenta de nuevo.', true);
+    }
+  }
 
-      try {
-        const response = await fetch(`${API_URL}/transacciones`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tipo, monto, usuario: usuarioLogueado }),
-        });
-        const result = await response.json();
+  async function transferir() {
+    const usuarioDestino = document.getElementById('usuarioDestino').value.trim();
+    const monto = parseFloat(document.getElementById('montoTransferencia').value);
 
-        if (response.ok) {
-          mostrarMensaje('transaccionMsg', `Transacción de ${tipo} realizada con éxito`, false);
-        } else {
-          mostrarMensaje('transaccionMsg', result.message, true);
-        }
-      } catch (error) {
-        mostrarMensaje('transaccionMsg', 'Error en la transacción. Intenta de nuevo.', true);
-      }
+    if (!usuarioDestino || isNaN(monto) || monto <= 0) {
+      mostrarMensaje('transferenciaMsg', 'Completa todos los campos correctamente', true);
+      return;
     }
 
-    async function transferir() {
-      const usuarioDestino = document.getElementById('usuarioDestino').value.trim();
-      const monto = parseFloat(document.getElementById('montoTransferencia').value);
+    try {
+      const response = await fetch(`${API_URL}/transferencias`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuarioOrigen: usuarioLogueado, usuarioDestino, monto }),
+      });
+      const result = await response.json();
 
-      if (!usuarioDestino || isNaN(monto) || monto <= 0) {
-        mostrarMensaje('transferenciaMsg', 'Completa todos los campos correctamente', true);
-        return;
+      if (response.ok) {
+        mostrarMensaje('transferenciaMsg', 'Transferencia realizada con éxito', false);
+        setVisibleSection('transaccionSection');
+      } else {
+        mostrarMensaje('transferenciaMsg', result.message || result.error || 'Error desconocido', true);
       }
-
-      try {
-        const response = await fetch(`${API_URL}/transferencias`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ usuarioOrigen: usuarioLogueado, usuarioDestino, monto }),
-        });
-        const result = await response.json();
-
-        if (response.ok) {
-          mostrarMensaje('transferenciaMsg', 'Transferencia realizada con éxito', false);
-          setVisibleSection('transaccionSection');
-        } else {
-          mostrarMensaje('transferenciaMsg', result.message, true);
-        }
-      } catch (error) {
-        mostrarMensaje('transferenciaMsg', 'Error en la transferencia. Intenta de nuevo.', true);
-      }
+    } catch (error) {
+      mostrarMensaje('transferenciaMsg', 'Error en la transferencia. Intenta de nuevo.', true);
     }
-  </script>
+  }
+</script>
 </body>
 </html>
