@@ -161,7 +161,7 @@
 
   <script>
     let usuarioLogueado = null;
-    const API_URL = 'https://proyectoarquitecturabd.onrender.com/api';  // URL de Render
+    const API_URL = window.location.origin + '/api';  // URL adaptable
 
     // Bloquea la entrada a solo letras, acentos y espacios
     function soloLetrasInput(input) {
