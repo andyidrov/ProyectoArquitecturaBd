@@ -64,3 +64,4 @@ router.post('/transaccion', async (req, res) => {
     res.status(500).json({ error: 'Error interno al procesar la transacción.' });
   }
 });
+module.exports = router;
